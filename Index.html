@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Theatre Booking MVP</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-red-900 text-white min-h-screen p-6">
+
+  <h1 class="text-3xl font-bold mb-6 text-center">🎭 Theatre Booking</h1>
+
+  <!-- Show List -->
+  <div id="shows" class="grid md:grid-cols-2 gap-4 mb-8"></div>
+
+  <!-- Booking Form -->
+  <div class="bg-red-800 p-6 rounded-lg max-w-md mx-auto">
+    <h2 class="text-xl mb-4">Book Tickets</h2>
+
+    <label class="block mb-2">Your Name</label>
+    <input id="name" class="w-full p-2 mb-4 text-black rounded" placeholder="Enter your name" />
+
+    <label class="block mb-2">Select Show</label>
+    <select id="showSelect" class="w-full p-2 mb-4 text-black rounded"></select>
+
+    <label class="block mb-2">Adult Tickets</label>
+    <input id="adult" type="number" min="0" value="0" class="w-full p-2 mb-4 text-black rounded" />
+
+    <label class="block mb-2">Child Tickets</label>
+    <input id="child" type="number" min="0" value="0" class="w-full p-2 mb-4 text-black rounded" />
+
+    <button onclick="bookTickets()" class="bg-yellow-500 text-black px-4 py-2 rounded w-full">
+      Book Now
+    </button>
+
+    <p id="confirmation" class="mt-4 text-green-300 hidden">
+      ✅ Booking successful!
+    </p>
+  </div>
+
+  <script>
+    // 🎭 Mock show data
+    const shows = [
+      { id: 1, title: "Hamlet", date: "2026-05-01", price: 10 },
+      { id: 2, title: "Macbeth", date: "2026-05-05", price: 12 },
+      { id: 3, title: "Othello", date: "2026-05-10", price: 11 }
+    ];
+
+    const showContainer = document.getElementById("shows");
+    const showSelect = document.getElementById("showSelect");
+
+    // Render shows
+    shows.forEach(show => {
+      // Card display
+      const div = document.createElement("div");
+      div.className = "bg-red-800 p-4 rounded";
+      div.innerHTML = `
+        <h3 class="text-lg font-bold">${show.title}</h3>
+        <p>Date: ${show.date}</p>
+        <p>Price: $${show.price}</p>
+      `;
+      showContainer.appendChild(div);
+
+      // Dropdown option
+      const option = document.createElement("option");
+      option.value = show.id;
+      option.textContent = `${show.title} (${show.date})`;
+      showSelect.appendChild(option);
+    });
+
+    // Booking function (mock)
+    function bookTickets() {
+      const name = document.getElementById("name").value;
+      const showId = document.getElementById("showSelect").value;
+      const adult = parseInt(document.getElementById("adult").value);
+      const child = parseInt(document.getElementById("child").value);
+
+      if (!name || (adult === 0 && child === 0)) {
+        alert("Please enter name and select at least 1 ticket.");
+        return;
+      }
+
+      const booking = {
+        name,
+        showId,
+        adult,
+        child,
+        time: new Date()
+      };
+
+      // 🔥 This is where Firebase will go later
+      console.log("Booking submitted:", booking);
+
+      document.getElementById("confirmation").classList.remove("hidden");
+    }
+  </script>
+
+</body>
+</html>
