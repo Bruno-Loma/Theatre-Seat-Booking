@@ -82,10 +82,8 @@
   <div class="container">
     <h1>🎭 Theatre Booking</h1>
 
-    <!-- Show List -->
     <div id="shows" class="shows"></div>
 
-    <!-- Booking Form -->
     <div class="form-box">
       <h2>Book Tickets</h2>
 
@@ -109,7 +107,27 @@
     </div>
   </div>
 
-  <script>
+  <script type="module">
+    // 🔥 Import Firebase (CDN version)
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+    // ✅ Your Firebase config
+    const firebaseConfig = {
+      apiKey: "AIzaSyBWTTqHBkIAVfetEgIJRN7EfTfe7JxCYdo",
+      authDomain: "seatsyncloma.firebaseapp.com",
+      projectId: "seatsyncloma",
+      storageBucket: "seatsyncloma.firebasestorage.app",
+      messagingSenderId: "829540724530",
+      appId: "1:829540724530:web:bb3516bb99f511959c312b"
+    };
+
+    // ✅ Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    console.log("Firestore Database connected successfully!");
+
     // 🎭 Mock Data
     const shows = [
       { id: 1, title: "Hamlet", date: "2026-05-01", price: 10 },
@@ -137,8 +155,8 @@
       showSelect.appendChild(option);
     });
 
-    // Booking logic (mock)
-    function bookTickets() {
+    // 🔥 REAL booking (now saves to Firestore)
+    window.bookTickets = async function () {
       const name = document.getElementById("name").value;
       const showId = document.getElementById("showSelect").value;
       const adult = parseInt(document.getElementById("adult").value);
@@ -157,11 +175,16 @@
         time: new Date()
       };
 
-      // 🔥 Future Firebase hook
-      console.log("Booking submitted:", booking);
+      try {
+        await addDoc(collection(db, "bookings"), booking);
 
-      document.getElementById("confirmation").classList.remove("hidden");
-    }
+        console.log("Booking saved:", booking);
+
+        document.getElementById("confirmation").classList.remove("hidden");
+      } catch (error) {
+        console.error("Error saving booking:", error);
+      }
+    };
   </script>
 
 </body>
