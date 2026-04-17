@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Stage Booking System</title>
+<title>Stage Booking</title>
 
 <style>
 body {
@@ -28,9 +28,7 @@ body {
   align-items: center;
 }
 
-.row-label {
-  width: 30px;
-}
+.row-label { width: 30px; }
 
 .seat {
   width: 28px;
@@ -48,9 +46,7 @@ body {
 .seat.selected { background: #22c55e; }
 .seat.occupied { background: #ef4444; cursor: not-allowed; }
 
-.controls {
-  margin-top: 20px;
-}
+.controls { margin-top: 20px; }
 
 input, select {
   padding: 8px;
@@ -62,19 +58,23 @@ button {
   background: #22c55e;
   border: none;
   cursor: pointer;
-  font-size: 16px;
 }
 
-#total {
-  margin-top: 10px;
-  font-size: 18px;
-}
+#total { margin-top: 10px; }
 </style>
-
 </head>
+
 <body>
 
 <h1>🎭 Stage Booking</h1>
+
+<select id="playSelect">
+  <option value="play1">Hamlet</option>
+  <option value="play2">Romeo & Juliet</option>
+  <option value="play3">Macbeth</option>
+  <option value="play4">Othello</option>
+  <option value="play5">King Lear</option>
+</select>
 
 <div class="stage">STAGE</div>
 
@@ -98,8 +98,8 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 import {
   getFirestore,
   doc,
-  setDoc,
-  onSnapshot
+  getDoc,
+  setDoc
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -117,18 +117,17 @@ const db = getFirestore(app);
 const rows = ["A","B","C","D","E","F","G","H"];
 const cols = 12;
 
-const prices = {
-  adult: 10,
-  child: 5
-};
+const prices = { adult: 10, child: 5 };
 
 let selectedSeats = [];
+let currentPlay = "play1";
 
 const container = document.getElementById("seats");
 const totalDisplay = document.getElementById("total");
-const ticketType = document.getElementById("ticketType");
 
 function createSeats() {
+  container.innerHTML = "";
+
   rows.forEach(r => {
     const row = document.createElement("div");
     row.classList.add("row");
@@ -168,70 +167,66 @@ function createSeats() {
 }
 
 function updateTotal() {
-  const type = ticketType.value;
-  const price = prices[type];
-  const total = selectedSeats.length * price;
-
-  totalDisplay.innerText = `Total: $${total}`;
+  const type = document.getElementById("ticketType").value;
+  totalDisplay.innerText =
+    "Total: $" + (selectedSeats.length * prices[type]);
 }
 
-ticketType.onchange = updateTotal;
+async function loadSeats() {
+  selectedSeats = [];
+  updateTotal();
 
-function listenSeats() {
-  const ref = doc(db, "seats", "booked");
+  const ref = doc(db, "plays", currentPlay);
+  const snap = await getDoc(ref);
 
-  onSnapshot(ref, (snap) => {
-    if (!snap.exists()) return;
+  document.querySelectorAll(".seat").forEach(s => {
+    s.classList.remove("occupied", "selected");
+  });
 
-    const data = snap.data();
-    const booked = data.list || [];
+  if (snap.exists()) {
+    const booked = snap.data().list || [];
 
     document.querySelectorAll(".seat").forEach(seat => {
-      const id = seat.dataset.id;
-
-      if (booked.includes(id)) {
+      if (booked.includes(seat.dataset.id)) {
         seat.classList.add("occupied");
-        seat.classList.remove("selected");
       }
     });
-  });
+  }
 }
 
 async function bookSeats() {
   const name = document.getElementById("name").value;
-  const type = ticketType.value;
 
-  if (!name) {
-    alert("Enter your name");
-    return;
+  if (!name) return alert("Enter your name");
+  if (selectedSeats.length === 0) return alert("Select seats");
+
+  const ref = doc(db, "plays", currentPlay);
+  const snap = await getDoc(ref);
+
+  let booked = [];
+
+  if (snap.exists()) {
+    booked = snap.data().list || [];
   }
 
-  if (selectedSeats.length === 0) {
-    alert("Select seats");
-    return;
-  }
+  const updated = [...new Set([...booked, ...selectedSeats])];
 
-  const ref = doc(db, "seats", "booked");
+  await setDoc(ref, { list: updated });
 
-  const newBooking = {
-    name: name,
-    type: type,
-    seats: selectedSeats
-  };
+  alert("✅ Seats booked successfully!");
 
-  // Merge with existing safely
-  await setDoc(ref, {
-    list: selectedSeats
-  }, { merge: true });
-
-  alert(`Booking successful 🎉\nName: ${name}\nSeats: ${selectedSeats.join(", ")}`);
-
-  selectedSeats = [];
-  updateTotal();
+  loadSeats();
 }
 
+document.getElementById("playSelect").onchange = (e) => {
+  currentPlay = e.target.value;
+  loadSeats();
+};
+
+document.getElementById("ticketType").onchange = updateTotal;
+
 createSeats();
-listenSeats();
+loadSeats();
 
 window.bookSeats = bookSeats;
 </script>
