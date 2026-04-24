@@ -65,19 +65,19 @@ import {
   runTransaction
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-// 🔥 REPLACE THIS WITH YOUR REAL CONFIG
+/* 🔥 REPLACE THIS WITH YOUR REAL FIREBASE CONFIG */
 const firebaseConfig = {
-  apiKey: "YOUR_KEY",
-  authDomain: "YOUR_DOMAIN",
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT.firebaseapp.com",
   projectId: "YOUR_PROJECT_ID"
 };
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
+/* CONFIG */
 const rows = ["A","B","C","D","E","F"];
 const cols = 10;
-
 const prices = { adult:10, child:5 };
 
 let selected = [];
@@ -85,6 +85,7 @@ let play = "play1";
 
 const container = document.getElementById("seats");
 
+/* DRAW SEATS */
 function drawSeats() {
   container.innerHTML = "";
 
@@ -111,7 +112,7 @@ function drawSeats() {
         seat.classList.toggle("selected");
 
         if (selected.includes(id)) {
-          selected = selected.filter(s => s!==id);
+          selected = selected.filter(s => s !== id);
         } else {
           selected.push(id);
         }
@@ -124,17 +125,19 @@ function drawSeats() {
   });
 }
 
+/* UPDATE TOTAL */
 function updateTotal() {
   const a = +document.getElementById("adult").value || 0;
   const c = +document.getElementById("child").value || 0;
 
   document.getElementById("total").innerText =
-    "Total: $" + (a*prices.adult + c*prices.child);
+    "Total: $" + (a * prices.adult + c * prices.child);
 }
 
 document.getElementById("adult").oninput = updateTotal;
 document.getElementById("child").oninput = updateTotal;
 
+/* REALTIME LISTENER */
 function listenSeats() {
   const ref = doc(db, "plays", play);
 
@@ -151,6 +154,7 @@ function listenSeats() {
   });
 }
 
+/* BOOKING FUNCTION */
 async function book() {
   try {
     const name = document.getElementById("name").value.trim();
@@ -162,7 +166,7 @@ async function book() {
     if (!name) return alert("Enter your name");
     if (totalTickets === 0) return alert("Add tickets");
     if (selected.length !== totalTickets)
-      return alert("Seats must match number of tickets");
+      return alert("Seats must match ticket count");
 
     const ref = doc(db, "plays", play);
 
@@ -173,12 +177,12 @@ async function book() {
       const seats = data.seats || {};
       const bookings = data.bookings || [];
 
-      // ❌ prevent double booking
+      /* prevent double booking */
       for (let s of selected) {
         if (seats[s]) throw new Error("Seat already booked");
       }
 
-      // 🎟 assign ticket types
+      /* assign ticket types */
       let i = 0;
       const ticketMap = {};
 
@@ -187,7 +191,7 @@ async function book() {
         i++;
       });
 
-      // 💾 save seat data
+      /* save seats */
       selected.forEach(seat => {
         seats[seat] = {
           name,
@@ -196,7 +200,7 @@ async function book() {
         };
       });
 
-      // 💾 save booking record
+      /* save booking record */
       bookings.push({
         name,
         seats: selected,
@@ -219,9 +223,10 @@ async function book() {
   }
 }
 
-// 🔥 IMPORTANT: make button work
+/* IMPORTANT: make button work */
 window.book = book;
 
+/* PLAY SWITCH */
 document.getElementById("playSelect").onchange = (e) => {
   play = e.target.value;
   selected = [];
@@ -229,6 +234,7 @@ document.getElementById("playSelect").onchange = (e) => {
   listenSeats();
 };
 
+/* INIT */
 drawSeats();
 listenSeats();
 updateTotal();
