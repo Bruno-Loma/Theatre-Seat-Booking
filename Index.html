@@ -5,63 +5,31 @@
 <title>Stage Booking</title>
 
 <style>
-body {
-  background: #0f172a;
-  color: white;
-  font-family: Arial;
-  text-align: center;
-}
+body { background:#0f172a; color:white; font-family:Arial; text-align:center; }
 
 .stage {
   background: linear-gradient(to right, #9333ea, #ec4899);
-  height: 80px;
-  width: 60%;
-  margin: 20px auto;
-  border-radius: 10px;
-  line-height: 80px;
-  font-weight: bold;
+  height:80px; width:60%; margin:20px auto;
+  border-radius:10px; line-height:80px; font-weight:bold;
 }
 
-.row {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-.row-label { width: 30px; }
+.row { display:flex; justify-content:center; align-items:center; }
+.row-label { width:30px; }
 
 .seat {
-  width: 28px;
-  height: 28px;
-  margin: 4px;
-  border-radius: 6px;
-  background: #1f2937;
-  cursor: pointer;
-  font-size: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  width:28px; height:28px; margin:4px;
+  border-radius:6px; background:#1f2937;
+  cursor:pointer; font-size:10px;
+  display:flex; align-items:center; justify-content:center;
 }
 
-.seat.selected { background: #22c55e; }
-.seat.occupied { background: #ef4444; cursor: not-allowed; }
+.seat.selected { background:#22c55e; }
+.seat.occupied { background:#ef4444; cursor:not-allowed; }
 
-.controls { margin-top: 20px; }
+input { padding:6px; margin:5px; width:120px; }
+button { padding:10px 20px; background:#22c55e; border:none; cursor:pointer; }
 
-input {
-  padding: 8px;
-  margin: 5px;
-  width: 150px;
-}
-
-button {
-  padding: 10px 20px;
-  background: #22c55e;
-  border: none;
-  cursor: pointer;
-}
-
-#total { margin-top: 10px; }
+#total { margin-top:10px; }
 </style>
 </head>
 
@@ -72,72 +40,68 @@ button {
 <select id="playSelect">
   <option value="play1">Hamlet</option>
   <option value="play2">Romeo & Juliet</option>
-  <option value="play3">Macbeth</option>
 </select>
 
 <div class="stage">STAGE</div>
 
 <div id="seats"></div>
 
-<div class="controls">
-  <input type="text" id="name" placeholder="Your Name"><br>
+<br>
+<input id="name" placeholder="Your name"><br>
 
-  Adult Tickets: <input type="number" id="adultCount" value="0" min="0">
-  Child Tickets: <input type="number" id="childCount" value="0" min="0">
+Adult: <input type="number" id="adult" value="0" min="0">
+Child: <input type="number" id="child" value="0" min="0">
 
-  <div id="total">Total: $0</div>
+<div id="total">Total: $0</div>
 
-  <button onclick="bookSeats()">Book Now</button>
-</div>
+<button onclick="book()">Book Now</button>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
   getFirestore,
   doc,
-  getDoc,
-  setDoc,
-  onSnapshot
+  onSnapshot,
+  runTransaction
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
+// 🔥 REPLACE THIS WITH YOUR REAL CONFIG
 const firebaseConfig = {
   apiKey: "YOUR_KEY",
   authDomain: "YOUR_DOMAIN",
-  projectId: "YOUR_ID"
+  projectId: "YOUR_PROJECT_ID"
 };
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-const rows = ["A","B","C","D","E","F","G","H"];
-const cols = 12;
+const rows = ["A","B","C","D","E","F"];
+const cols = 10;
 
-const prices = { adult: 10, child: 5 };
+const prices = { adult:10, child:5 };
 
-let selectedSeats = [];
-let currentPlay = "play1";
-let unsubscribe = null;
+let selected = [];
+let play = "play1";
 
 const container = document.getElementById("seats");
-const totalDisplay = document.getElementById("total");
 
-function createSeats() {
+function drawSeats() {
   container.innerHTML = "";
 
   rows.forEach(r => {
     const row = document.createElement("div");
-    row.classList.add("row");
+    row.className = "row";
 
     const label = document.createElement("div");
-    label.classList.add("row-label");
+    label.className = "row-label";
     label.innerText = r;
     row.appendChild(label);
 
-    for (let i = 1; i <= cols; i++) {
+    for (let i=1;i<=cols;i++) {
+      const id = r+i;
       const seat = document.createElement("div");
-      const id = r + i;
 
-      seat.classList.add("seat");
+      seat.className = "seat";
       seat.innerText = i;
       seat.dataset.id = id;
 
@@ -146,13 +110,11 @@ function createSeats() {
 
         seat.classList.toggle("selected");
 
-        if (selectedSeats.includes(id)) {
-          selectedSeats = selectedSeats.filter(s => s !== id);
+        if (selected.includes(id)) {
+          selected = selected.filter(s => s!==id);
         } else {
-          selectedSeats.push(id);
+          selected.push(id);
         }
-
-        updateTotal();
       };
 
       row.appendChild(seat);
@@ -163,89 +125,114 @@ function createSeats() {
 }
 
 function updateTotal() {
-  const adult = parseInt(document.getElementById("adultCount").value) || 0;
-  const child = parseInt(document.getElementById("childCount").value) || 0;
+  const a = +document.getElementById("adult").value || 0;
+  const c = +document.getElementById("child").value || 0;
 
-  const total = adult * prices.adult + child * prices.child;
-
-  totalDisplay.innerText = "Total: $" + total;
+  document.getElementById("total").innerText =
+    "Total: $" + (a*prices.adult + c*prices.child);
 }
 
+document.getElementById("adult").oninput = updateTotal;
+document.getElementById("child").oninput = updateTotal;
+
 function listenSeats() {
-  if (unsubscribe) unsubscribe();
+  const ref = doc(db, "plays", play);
 
-  const ref = doc(db, "plays", currentPlay);
+  onSnapshot(ref, (snap) => {
+    const data = snap.data() || {};
+    const seats = data.seats || {};
 
-  unsubscribe = onSnapshot(ref, (snap) => {
     document.querySelectorAll(".seat").forEach(s => {
       s.classList.remove("occupied");
+      if (seats[s.dataset.id]) {
+        s.classList.add("occupied");
+      }
     });
-
-    if (snap.exists()) {
-      const booked = snap.data().list || [];
-
-      document.querySelectorAll(".seat").forEach(seat => {
-        if (booked.includes(seat.dataset.id)) {
-          seat.classList.add("occupied");
-        }
-      });
-    }
   });
 }
 
-async function bookSeats() {
-  const name = document.getElementById("name").value;
-  const adult = parseInt(document.getElementById("adultCount").value) || 0;
-  const child = parseInt(document.getElementById("childCount").value) || 0;
+async function book() {
+  try {
+    const name = document.getElementById("name").value.trim();
+    const adult = +document.getElementById("adult").value || 0;
+    const child = +document.getElementById("child").value || 0;
 
-  if (!name) return alert("Enter your name");
+    const totalTickets = adult + child;
 
-  const totalTickets = adult + child;
+    if (!name) return alert("Enter your name");
+    if (totalTickets === 0) return alert("Add tickets");
+    if (selected.length !== totalTickets)
+      return alert("Seats must match number of tickets");
 
-  if (totalTickets === 0) return alert("Add tickets");
-  if (selectedSeats.length !== totalTickets)
-    return alert("Seats must match ticket count");
+    const ref = doc(db, "plays", play);
 
-  const ref = doc(db, "plays", currentPlay);
-  const snap = await getDoc(ref);
+    await runTransaction(db, async (tx) => {
+      const snap = await tx.get(ref);
+      const data = snap.data() || {};
 
-  let booked = [];
+      const seats = data.seats || {};
+      const bookings = data.bookings || [];
 
-  if (snap.exists()) {
-    booked = snap.data().list || [];
+      // ❌ prevent double booking
+      for (let s of selected) {
+        if (seats[s]) throw new Error("Seat already booked");
+      }
+
+      // 🎟 assign ticket types
+      let i = 0;
+      const ticketMap = {};
+
+      selected.forEach(seat => {
+        ticketMap[seat] = i < adult ? "adult" : "child";
+        i++;
+      });
+
+      // 💾 save seat data
+      selected.forEach(seat => {
+        seats[seat] = {
+          name,
+          type: ticketMap[seat],
+          time: Date.now()
+        };
+      });
+
+      // 💾 save booking record
+      bookings.push({
+        name,
+        seats: selected,
+        adult,
+        child,
+        time: Date.now()
+      });
+
+      tx.set(ref, { seats, bookings });
+    });
+
+    alert("✅ Booking successful!");
+
+    selected = [];
+    document.querySelectorAll(".seat").forEach(s => s.classList.remove("selected"));
+
+  } catch (err) {
+    alert("❌ " + err.message);
+    console.error(err);
   }
-
-  // prevent double booking
-  const conflict = selectedSeats.some(seat => booked.includes(seat));
-  if (conflict) return alert("Some seats already booked!");
-
-  const updated = [...booked, ...selectedSeats];
-
-  await setDoc(ref, { list: updated });
-
-  alert("✅ Booking confirmed!");
-
-  selectedSeats = [];
-  document.querySelectorAll(".seat").forEach(s => s.classList.remove("selected"));
-
-  updateTotal();
 }
 
+// 🔥 IMPORTANT: make button work
+window.book = book;
+
 document.getElementById("playSelect").onchange = (e) => {
-  currentPlay = e.target.value;
-  selectedSeats = [];
-  createSeats();
+  play = e.target.value;
+  selected = [];
+  drawSeats();
   listenSeats();
 };
 
-document.getElementById("adultCount").oninput = updateTotal;
-document.getElementById("childCount").oninput = updateTotal;
-
-createSeats();
+drawSeats();
 listenSeats();
 updateTotal();
 
-window.bookSeats = bookSeats;
 </script>
 
 </body>
